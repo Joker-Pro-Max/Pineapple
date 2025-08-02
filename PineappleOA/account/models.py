@@ -4,8 +4,10 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 
+
 def create_uuid():
     return shortuuid.uuid()
+
 
 # ✅ 1. 基类 BaseModel
 class BaseModel(models.Model):
@@ -212,3 +214,20 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         for role in self.roles.prefetch_related("permissions").all():
             perms.update(role.permissions.values_list("permission_code", flat=True))
         return list(perms)
+
+    def is_super_admin(self):
+        """超级管理员：Django is_superuser OR 角色 superadmin"""
+        if self.is_superuser:  # ✅ 兼容 Django createsuperuser
+            return True
+        return self.roles.filter(role_name="superadmin", is_enable=True).exists()
+
+    def has_custom_permission(self, perm_code):
+        """
+        检查用户是否拥有某个自定义权限
+        """
+        if self.is_super_admin():
+            return True
+        return self.roles.filter(
+            is_enable=True,
+            permissions__permission_code=perm_code
+        ).exists()
