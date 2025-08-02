@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import permissions, status
 from django.shortcuts import get_object_or_404
 
@@ -9,7 +10,8 @@ from .models import User, CustomPermission, System, Role
 from .permissions import IsAdminRole
 from .serializers import (
     RegisterSerializer, CustomTokenObtainPairSerializer, UserDetailSerializer, CustomPermissionSerializer,
-    SystemSerializer, RoleUserSerializer, SystemUserSerializer, CustomUserPermissionSerializer
+    SystemSerializer, SystemCreateSerializer, SystemListRetrieveSerializer, PermissionCreateSerializer,
+    PermissionListRetrieveSerializer, RoleListRetrieveSerializer, RoleCreateSerializer
 )
 from .authentication import CustomTokenObtainPairSerializer
 import requests
@@ -111,149 +113,220 @@ class CurrentUserView(generics.GenericAPIView):
         return Response(data)
 
 
-# ✅ 系统列表 + 创建
-class SystemListCreateView(generics.GenericAPIView):
+# ✅ 系统 创建
+class SystemCreateView(generics.CreateAPIView):  # noqa
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-
-    def get(self, request):
-        """系统列表"""
-        systems = System.objects.all().order_by("-create_at")
-        return Response(self.msg(code=200, msg="成功", data=SystemUserSerializer(systems, many=True).data))
-
-    def post(self, request):
-        """新增系统"""
-        serializer = SystemUserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(created_by=request.user)
-            return Response(self.msg(code=200, msg="成功", data=serializer.data))
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer_class = SystemCreateSerializer
 
 
-# ✅ 系统详情（修改 / 删除 / 详情）
-class SystemDetailView(generics.GenericAPIView):
+# ✅ 系统 列表
+class SystemListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-
-    def get_object(self, pk):  # noqa
-        return get_object_or_404(System, pk=pk)
-
-    def get(self, request, pk):
-        """查看系统详情"""
-        system = self.get_object(pk)
-        return Response(SystemUserSerializer(system).data)
-
-    def put(self, request, pk):
-        """修改系统"""
-        system = self.get_object(pk)
-        serializer = SystemUserSerializer(system, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(self.msg(code=200, msg="成功", data=serializer.data))
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        """软删除系统"""
-        system = self.get_object(pk)
-        system.is_deleted = True
-        system.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    serializer_class = SystemListRetrieveSerializer
+    queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
 
 
-# ✅ 角色列表 + 创建
-class RoleListCreateView(generics.GenericAPIView):
+# ✅ 系统 详情 ｜ 修改
+class SystemRetrieveView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-
-    def get(self, request):  # noqa
-        """角色列表"""
-        roles = Role.objects.all().order_by("-create_at")
-        return Response(RoleUserSerializer(roles, many=True).data)
-
-    def post(self, request):
-        """新增角色"""
-        serializer = RoleUserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(created_by=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer_class = SystemListRetrieveSerializer
+    queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
 
 
-# ✅ 角色详情（修改 / 删除 / 详情）
-class RoleDetailView(generics.GenericAPIView):
+# ✅ 系统 删除
+class SystemDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    queryset = System.objects.all()
 
-    def get_object(self, pk):  # noqa
-        return get_object_or_404(Role, pk=pk)
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.del_time = timezone.now()
+        instance.save()
+        return instance
 
-    def get(self, request, pk):
-        """查看角色详情"""
-        role = self.get_object(pk)
-        return Response(RoleUserSerializer(role).data)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deleted_uuid = instance.uuid  # 获取被删除对象的ID
+        self.perform_destroy(instance)  # 执行删除
 
-    def put(self, request, pk):
-        """修改角色"""
-        role = self.get_object(pk)
-        serializer = RoleUserSerializer(role, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        """软删除角色"""
-        role = self.get_object(pk)
-        role.is_deleted = True
-        role.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        # 自定义响应
+        return Response(
+            {
+                "detail": f"{instance.system_name} 已删除",
+                "deleted_id": deleted_uuid,
+                "status": status.HTTP_200_OK
+            },
+            status=status.HTTP_200_OK  # 改用 200 OK 包含响应体
+        )
 
 
-class PermissionListCreateView(generics.GenericAPIView):
+# ✅ 系统 取消删除
+class SystemCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    queryset = System.objects.all()
 
-    def get(self, request):  # noqa
-        """获取权限列表"""
-        permissions_qs = CustomPermission.objects.all()
-        serializer = CustomUserPermissionSerializer(permissions_qs, many=True)
-        return Response(serializer.data)
+    def perform_destroy(self, instance):
+        instance.is_deleted = False
+        instance.save()
+        return instance
 
-    def post(self, request):
-        """创建权限，如果已存在直接返回"""
-        serializer = CustomPermissionSerializer(data=request.data)
-        if serializer.is_valid():
-            obj = serializer.save(created_by=request.user)
-            return Response(CustomPermissionSerializer(obj).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deleted_uuid = instance.uuid  # 获取被删除对象的ID
+        self.perform_destroy(instance)  # 执行删除
+
+        # 自定义响应
+        return Response(
+            {
+                "detail": f"{instance.system_name} 已恢复",
+                "deleted_id": deleted_uuid,
+                "status": status.HTTP_200_OK
+            },
+            status=status.HTTP_200_OK  # 改用 200 OK 包含响应体
+        )
 
 
-class PermissionDetailView(generics.GenericAPIView):
+# ✅ 角色 创建
+class RoleCreateView(generics.ListAPIView):  # noqa
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = RoleCreateSerializer
 
-    def get_object(self, pk):  # noqa
-        try:
-            return CustomPermission.objects.get(pk=pk)
-        except CustomPermission.DoesNotExist:
-            return None
 
-    def get(self, request, pk):
-        """获取权限详情"""
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "权限不存在"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(CustomPermissionSerializer(obj).data)
+# ✅ 角色 列表
+class RoleListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = RoleListRetrieveSerializer
+    queryset = Role.objects.filter(is_deleted=False).order_by("-create_at")
 
-    def put(self, request, pk):
-        """修改权限"""
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "权限不存在"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = CustomPermissionSerializer(obj, data=request.data, partial=False)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, pk):
-        """删除权限"""
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "权限不存在"}, status=status.HTTP_404_NOT_FOUND)
-        obj.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+# ✅ 角色 详情 ｜ 修改
+class RoleRetrieveView(generics.RetrieveUpdateAPIView):  # noqa
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = RoleListRetrieveSerializer
+    queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
+
+
+# ✅ 角色 删除
+class RoleDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    queryset = System.objects.all()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.del_time = timezone.now()
+        instance.save()
+        return instance
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deleted_uuid = instance.uuid  # 获取被删除对象的ID
+        self.perform_destroy(instance)  # 执行删除
+
+        # 自定义响应
+        return Response(
+            {
+                "detail": f"{instance.system_name} 已删除",
+                "deleted_id": deleted_uuid,
+                "status": status.HTTP_200_OK
+            },
+            status=status.HTTP_200_OK  # 改用 200 OK 包含响应体
+        )
+
+
+# ✅ 角色 取消删除
+class RoleCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    queryset = System.objects.all()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = False
+        instance.save()
+        return instance
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deleted_uuid = instance.uuid  # 获取被删除对象的ID
+        self.perform_destroy(instance)  # 执行删除
+
+        # 自定义响应
+        return Response(
+            {
+                "detail": f"{instance.system_name} 已恢复",
+                "deleted_id": deleted_uuid,
+                "status": status.HTTP_200_OK
+            },
+            status=status.HTTP_200_OK  # 改用 200 OK 包含响应体
+        )
+
+
+# ✅ 权限 创建
+class PermissionCreateView(generics.ListAPIView):  # noqa
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = PermissionCreateSerializer
+
+
+# ✅ 权限 列表
+class PermissionListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = PermissionListRetrieveSerializer
+    queryset = Role.objects.filter(is_deleted=False).order_by("-create_at")
+
+
+# ✅ 权限 详情 ｜ 修改
+class PermissionRetrieveView(generics.RetrieveUpdateAPIView):  # noqa
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    serializer_class = PermissionListRetrieveSerializer
+    queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
+
+
+# ✅ 权限 删除
+class PermissionDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    queryset = System.objects.all()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.del_time = timezone.now()
+        instance.save()
+        return instance
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deleted_uuid = instance.uuid  # 获取被删除对象的ID
+        self.perform_destroy(instance)  # 执行删除
+
+        # 自定义响应
+        return Response(
+            {
+                "detail": f"{instance.system_name} 已删除",
+                "deleted_id": deleted_uuid,
+                "status": status.HTTP_200_OK
+            },
+            status=status.HTTP_200_OK  # 改用 200 OK 包含响应体
+        )
+
+
+# ✅ 权限 取消删除
+class PermissionCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    queryset = System.objects.all()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = False
+        instance.save()
+        return instance
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deleted_uuid = instance.uuid  # 获取被删除对象的ID
+        self.perform_destroy(instance)  # 执行删除
+
+        # 自定义响应
+        return Response(
+            {
+                "detail": f"{instance.system_name} 已恢复",
+                "deleted_id": deleted_uuid,
+                "status": status.HTTP_200_OK
+            },
+            status=status.HTTP_200_OK  # 改用 200 OK 包含响应体
+        )

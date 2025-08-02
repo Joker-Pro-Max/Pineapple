@@ -51,6 +51,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'account.CustomPermissionMiddleware.CustomPermissionMiddleware'
 ]
 
 ROOT_URLCONF = 'PineappleOA.urls'
@@ -159,17 +161,103 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "USER_ID_FIELD": "unified_uuid",  # ✅ 指定使用 uuid
-    "USER_ID_CLAIM": "unified_uuid",  # ✅ JWT 里存储的字段名（自定义）
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    "USER_ID_FIELD": "unified_uuid",     # ✅ 使用 unified_uuid 作为用户标识
+    "USER_ID_CLAIM": "unified_uuid",     # ✅ JWT Payload 中的字段名
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),   # ✅ 访问 Token 有效期 24 小时
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),    # ✅ 刷新 Token 7 天有效
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# ------------------------------------------------ log -----------------------------------------------------------------
+import os
+import os
+
+LOG_DIR = os.path.join(BASE_DIR, 'log')
+os.makedirs(LOG_DIR, exist_ok=True)  # 确保日志目录存在
+LOG_LEVEL = 'DEBUG' if DEBUG else 'INFO'
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'ai_request': {
+            'format': '{asctime} | {levelname} | {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'all_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'all.log'),
+            'formatter': 'verbose'
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'errors.log'),
+            'formatter': 'verbose'
+        },
+        'db_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'db_queries.log'),
+            'formatter': 'verbose'
+        },
+        'console': {
+            'level': 'DEBUG',  # 这里改为 DEBUG 以便开发时能看到全部日志
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        }
+    },
+    'loggers': {
+        '': {  # 根 logger
+            'handlers': ['all_file', 'console'],  # ✅ 添加 console
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.db.backends': {
+            'handlers': ['db_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['error_file', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        }
+    },
+}
+
+LOG_APPS = ['account']
+
+# ✅ 为每个APP创建单独日志配置（同时打印终端）
+for app in LOG_APPS:
+    if '.' not in app:
+        handler_name = f'{app}_file'
+        LOGGING['handlers'][handler_name] = {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, f'{app}.log'),
+            'formatter': 'verbose'
+        }
+
+        LOGGING['loggers'][app] = {
+            'handlers': [handler_name, 'console'],  # ✅ 同时输出到控制台
+            'level': 'DEBUG',
+            'propagate': False,
+        }

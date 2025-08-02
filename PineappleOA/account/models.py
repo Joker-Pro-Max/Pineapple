@@ -48,6 +48,8 @@ class System(BaseModel):
     """
     system_name = models.CharField(max_length=100, verbose_name="系统名称")
     system_code = models.CharField(max_length=50, unique=True, verbose_name="系统唯一标识")  # 系统唯一标识
+    # 系统描述
+
     # ✅ 新增创建人
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -88,6 +90,9 @@ class Role(BaseModel):
     """
     role_name = models.CharField(max_length=100, unique=True, verbose_name="角色名称")
     is_enable = models.BooleanField(default=True, verbose_name="是否启用")
+
+    # 角色描述
+
 
     # 🔗 角色 ↔ 权限
     permissions = models.ManyToManyField(
