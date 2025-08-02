@@ -35,6 +35,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # rest_framework 配置
+    "rest_framework",
+    # JWT 配置
+    "rest_framework_simplejwt",
 
     'account'
 ]
@@ -141,7 +145,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # AUTH_USER_MODEL
-# AUTH_USER_MODEL = "account.User"
+AUTH_USER_MODEL = "account.User"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
