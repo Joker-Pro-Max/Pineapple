@@ -142,3 +142,35 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_is_super_admin(self, obj):
         return obj.is_super_admin()
+
+
+class CustomUserPermissionSerializer(serializers.ModelSerializer):
+    created_by = serializers.StringRelatedField(read_only=True)
+    _existing_instance = None
+
+    class Meta:
+        model = CustomPermission
+        fields = ["uuid", "permission_name", "permission_code", "created_by"]
+
+    def validate(self, attrs):
+        """如果 permission_code 已存在，则记录并跳过重复创建"""
+        code = attrs.get("permission_code")
+        if code:
+            try:
+                existing = CustomPermission.objects.get(permission_code=code)
+                self._existing_instance = existing
+            except CustomPermission.DoesNotExist:
+                pass
+        return attrs
+
+    def create(self, validated_data):
+        """已存在则返回已有对象"""
+        if self._existing_instance is not None:
+            return self._existing_instance
+        return CustomPermission.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

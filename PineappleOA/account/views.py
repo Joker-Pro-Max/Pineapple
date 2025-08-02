@@ -9,7 +9,7 @@ from .models import User, CustomPermission, System, Role
 from .permissions import IsAdminRole
 from .serializers import (
     RegisterSerializer, CustomTokenObtainPairSerializer, UserDetailSerializer, CustomPermissionSerializer,
-    SystemSerializer, RoleUserSerializer, SystemUserSerializer
+    SystemSerializer, RoleUserSerializer, SystemUserSerializer, CustomUserPermissionSerializer
 )
 from .authentication import CustomTokenObtainPairSerializer
 import requests
@@ -202,4 +202,58 @@ class RoleDetailView(generics.GenericAPIView):
         role = self.get_object(pk)
         role.is_deleted = True
         role.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PermissionListCreateView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+
+    def get(self, request):  # noqa
+        """获取权限列表"""
+        permissions_qs = CustomPermission.objects.all()
+        serializer = CustomUserPermissionSerializer(permissions_qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        """创建权限，如果已存在直接返回"""
+        serializer = CustomPermissionSerializer(data=request.data)
+        if serializer.is_valid():
+            obj = serializer.save(created_by=request.user)
+            return Response(CustomPermissionSerializer(obj).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PermissionDetailView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+
+    def get_object(self, pk):  # noqa
+        try:
+            return CustomPermission.objects.get(pk=pk)
+        except CustomPermission.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        """获取权限详情"""
+        obj = self.get_object(pk)
+        if not obj:
+            return Response({"detail": "权限不存在"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(CustomPermissionSerializer(obj).data)
+
+    def put(self, request, pk):
+        """修改权限"""
+        obj = self.get_object(pk)
+        if not obj:
+            return Response({"detail": "权限不存在"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CustomPermissionSerializer(obj, data=request.data, partial=False)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        """删除权限"""
+        obj = self.get_object(pk)
+        if not obj:
+            return Response({"detail": "权限不存在"}, status=status.HTTP_404_NOT_FOUND)
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
