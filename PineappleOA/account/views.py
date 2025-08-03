@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import permissions, status
-from django.shortcuts import get_object_or_404
-
+from utensil.views import CustomPagination
+from .filters import UserFilter, SystemFilter, RoleFilter, CustomPermissionFilter
 from utensil import generics
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -11,12 +11,14 @@ from .permissions import IsAdminRole
 from .serializers import (
     RegisterSerializer, CustomTokenObtainPairSerializer, UserDetailSerializer, CustomPermissionSerializer,
     SystemSerializer, SystemCreateSerializer, SystemListRetrieveSerializer, PermissionCreateSerializer,
-    PermissionListRetrieveSerializer, RoleListRetrieveSerializer, RoleCreateSerializer
+    PermissionListRetrieveSerializer, RoleListRetrieveSerializer, RoleCreateSerializer, UserUpdateSerializer,
+    UserListSerializer
 )
 from .authentication import CustomTokenObtainPairSerializer
 import requests
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 # ✅ 用户注册
@@ -83,7 +85,22 @@ class WeChatLoginView(generics.GenericAPIView):
         return Response({"access": str(token.access_token), "refresh": str(token)})  # noqa
 
 
-# 获取当前用户的全部信息
+class UserListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserListSerializer
+    pagination_class = CustomPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter  # noqa
+    queryset = User.objects.filter(is_deleted=False).order_by('-create_at')
+
+
+class UserUpdateView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserUpdateSerializer
+    queryset = User.objects.filter(is_deleted=False)
+
+
+# # ✅ 获取当前用户的全部信息
 class CurrentUserView(generics.GenericAPIView):
     """
     获取当前登录用户详细信息（含角色、权限、系统、是否超级管理员）
@@ -124,6 +141,9 @@ class SystemListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = SystemListRetrieveSerializer
     queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
+    pagination_class = CustomPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = SystemFilter  # noqa
 
 
 # ✅ 系统 详情 ｜ 修改
@@ -197,6 +217,9 @@ class RoleListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = RoleListRetrieveSerializer
     queryset = Role.objects.filter(is_deleted=False).order_by("-create_at")
+    pagination_class = CustomPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = RoleFilter  # noqa
 
 
 # ✅ 角色 详情 ｜ 修改
@@ -270,6 +293,9 @@ class PermissionListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = PermissionListRetrieveSerializer
     queryset = CustomPermission.objects.filter(is_deleted=False).order_by("-create_at")
+    pagination_class = CustomPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CustomPermissionFilter  # noqa
 
 
 # ✅ 权限 详情 ｜ 修改

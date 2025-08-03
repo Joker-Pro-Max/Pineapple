@@ -36,6 +36,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["uuid", "email", "phone", "username", "nickname", "wx_nickname", "wx_avatar_url"]
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["phone", "avatar", "username", "nickname"]
+
+
 class SystemSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)  # 显示用户名
 

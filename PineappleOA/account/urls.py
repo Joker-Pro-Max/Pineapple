@@ -1,6 +1,11 @@
 from django.urls import re_path
 
-from .views import *
+from .views import (
+    LoginView, RegisterView, RefreshTokenView, WeChatLoginView, CurrentUserView, UserListView, UserUpdateView,
+    SystemCreateView, SystemListView, SystemRetrieveView, SystemDeleteView, SystemCancelDeleteView, RoleCreateView,
+    RoleListView, RoleRetrieveView, RoleDeleteView, RoleCancelDeleteView, PermissionCreateView, PermissionListView,
+    PermissionRetrieveView, PermissionDeleteView, PermissionCancelDeleteView
+)
 
 urlpatterns = [
     re_path(r"^register/$", RegisterView.as_view()),
@@ -8,8 +13,9 @@ urlpatterns = [
     re_path(r"^refresh/$", RefreshTokenView.as_view()),  # ✅ 刷新 Access Token
     re_path(r"^wechat/$", WeChatLoginView.as_view()),  # ✅ 微信登录
     re_path(r"^myinfo/$", CurrentUserView.as_view()),  # ✅ 获取用户信息
+    re_path(r"^user/list/$", UserListView.as_view()),  # ✅ 用户列表
+    re_path(r"^userinfo/(?P<pk>[0-9A-Za-z_-]{22})/update/$", UserUpdateView.as_view()),  # ✅ 修改用户信息
 
-    # TODO: 用户列表 用户信息修改 用户禁用
     # ✅ 系统 API
     re_path(r"^systems/create/$", SystemCreateView.as_view(), name="system-create"),
     re_path(r"^systems/list/$", SystemListView.as_view(), name="system-list"),
@@ -28,10 +34,11 @@ urlpatterns = [
 
     # ✅ 权限 API
     re_path(r"^permission/create/$", PermissionCreateView.as_view(), name="permission-create"),
-    re_path(r"^permission/list/$",PermissionListView.as_view(), name="permission-list"),
-    re_path(r"^permission/(?P<pk>[0-9A-Za-z_-]{22})/$", PermissionRetrieveView.as_view(), name="permission-detail-update"),
+    re_path(r"^permission/list/$", PermissionListView.as_view(), name="permission-list"),
+    re_path(r"^permission/(?P<pk>[0-9A-Za-z_-]{22})/$", PermissionRetrieveView.as_view(),
+            name="permission-detail-update"),
     re_path(r"^permission/(?P<pk>[0-9A-Za-z_-]{22})/del/$", PermissionDeleteView.as_view(), name="permission-del"),
-    re_path(r"^permission/(?P<pk>[0-9A-Za-z_-]{22})/cancel-del/$",PermissionCancelDeleteView.as_view(),
+    re_path(r"^permission/(?P<pk>[0-9A-Za-z_-]{22})/cancel-del/$", PermissionCancelDeleteView.as_view(),
             name="permission-cancel-del"),
 
 ]

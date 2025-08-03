@@ -25,10 +25,11 @@ class BaseModel(models.Model):
         default=create_uuid,
         editable=False,
         max_length=25,
+        db_index=True
     )
     create_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")
     update_at = models.DateTimeField(auto_now=True, verbose_name="修改时间")
-    is_deleted = models.BooleanField(default=False, verbose_name="是否删除: True 已经删除 False 未删除")
+    is_deleted = models.BooleanField(default=False, verbose_name="是否删除: True 已经删除 False 未删除", db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="删除时间")
 
     class Meta:
@@ -46,8 +47,8 @@ class System(BaseModel):
     """
     业务系统表（标识各个微服务）
     """
-    system_name = models.CharField(max_length=100, verbose_name="系统名称")
-    system_code = models.CharField(max_length=50, unique=True, verbose_name="系统唯一标识")  # 系统唯一标识
+    system_name = models.CharField(max_length=100, verbose_name="系统名称", db_index=True)
+    system_code = models.CharField(max_length=50, unique=True, verbose_name="系统唯一标识", db_index=True)  # 系统唯一标识
     # 系统描述
 
     # ✅ 新增创建人
@@ -68,8 +69,9 @@ class CustomPermission(BaseModel):
     """
     自定义权限（独立于 Django 默认权限）
     """
-    permission_name = models.CharField(max_length=100, verbose_name="权限名称")
-    permission_code = models.CharField(max_length=100, unique=True, verbose_name="权限code")  # 例如: product.view
+    permission_name = models.CharField(max_length=100, verbose_name="权限名称", db_index=True)
+    permission_code = models.CharField(max_length=100, unique=True, verbose_name="权限code",
+                                       db_index=True)  # 例如: product.view
     # ✅ 新增创建人
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -88,11 +90,10 @@ class Role(BaseModel):
     """
     角色表（可分配给用户，并关联自定义权限）
     """
-    role_name = models.CharField(max_length=100, unique=True, verbose_name="角色名称")
-    is_enable = models.BooleanField(default=True, verbose_name="是否启用")
+    role_name = models.CharField(max_length=100, unique=True, verbose_name="角色名称", db_index=True)
+    is_enable = models.BooleanField(default=True, verbose_name="是否启用", db_index=True)
 
     # 角色描述
-
 
     # 🔗 角色 ↔ 权限
     permissions = models.ManyToManyField(
@@ -140,22 +141,24 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
     """
     用户表（统一账户中心）
     """
-    email = models.EmailField(unique=True, null=True, blank=True, verbose_name="email")
-    phone = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name="phone")
+    email = models.EmailField(unique=True, null=True, blank=True, verbose_name="email", db_index=True)
+    phone = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name="phone", db_index=True)
     password = models.CharField(max_length=128, null=True, blank=True, verbose_name="password")
-    avatar = models.URLField(null=True, blank=True, verbose_name="avatar")
-    username = models.CharField(max_length=150, null=True, blank=True, verbose_name="username")
-    nickname = models.CharField(max_length=100, null=True, blank=True, verbose_name="nickname")
+    avatar = models.URLField(null=True, blank=True, verbose_name="avatar", db_index=True)
+    username = models.CharField(max_length=150, null=True, blank=True, verbose_name="username", db_index=True)
+    nickname = models.CharField(max_length=100, null=True, blank=True, verbose_name="nickname", db_index=True)
 
     # ✅ 微信字段
-    wx_openid = models.CharField(max_length=64, unique=True, null=True, blank=True, verbose_name="wx_openid")
-    wx_unionid = models.CharField(max_length=64, unique=True, null=True, blank=True, verbose_name="wx_unionid")
-    wx_nickname = models.CharField(max_length=100, null=True, blank=True, verbose_name="wx_nickname")
-    wx_avatar_url = models.URLField(null=True, blank=True, verbose_name="wx_avatar_url")
+    wx_openid = models.CharField(max_length=64, unique=True, null=True, blank=True, verbose_name="wx_openid",
+                                 db_index=True)
+    wx_unionid = models.CharField(max_length=64, unique=True, null=True, blank=True, verbose_name="wx_unionid",
+                                  db_index=True)
+    wx_nickname = models.CharField(max_length=100, null=True, blank=True, verbose_name="wx_nickname", db_index=True)
+    wx_avatar_url = models.URLField(null=True, blank=True, verbose_name="wx_avatar_url", db_index=True)
 
     # ✅ Django 内置权限字段
-    is_active = models.BooleanField(default=True, verbose_name="is_active")
-    is_staff = models.BooleanField(default=False, verbose_name="is_staff")
+    is_active = models.BooleanField(default=True, verbose_name="is_active", db_index=True)
+    is_staff = models.BooleanField(default=False, verbose_name="is_staff", db_index=True)
 
     # 🔗 用户 ↔ 角色（多对多）
     roles = models.ManyToManyField(
@@ -200,6 +203,8 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
             models.Index(fields=["is_deleted", "nickname"], name="idx_user_deleted_nickname"),
             models.Index(fields=["is_deleted", "email"], name="idx_user_deleted_email"),
             models.Index(fields=["is_deleted", "phone"], name="idx_user_deleted_phone"),
+            models.Index(fields=["is_deleted", "email", "nickname", "wx_nickname", "username"],
+                         name="idx_user_list"),
         ]
 
     def __str__(self):
