@@ -187,7 +187,7 @@ class SystemCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
 
 
 # ✅ 角色 创建
-class RoleCreateView(generics.ListAPIView):  # noqa
+class RoleCreateView(generics.CreateAPIView):  # noqa
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = RoleCreateSerializer
 
@@ -203,13 +203,13 @@ class RoleListView(generics.ListAPIView):
 class RoleRetrieveView(generics.RetrieveUpdateAPIView):  # noqa
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = RoleListRetrieveSerializer
-    queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
+    queryset = Role.objects.filter(is_deleted=False).order_by("-create_at")
 
 
 # ✅ 角色 删除
 class RoleDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-    queryset = System.objects.all()
+    queryset = Role.objects.all()
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
@@ -225,7 +225,7 @@ class RoleDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
         # 自定义响应
         return Response(
             {
-                "detail": f"{instance.system_name} 已删除",
+                "detail": f"{instance.role_name} 已删除",
                 "deleted_id": deleted_uuid,
                 "status": status.HTTP_200_OK
             },
@@ -236,7 +236,7 @@ class RoleDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
 # ✅ 角色 取消删除
 class RoleCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-    queryset = System.objects.all()
+    queryset = Role.objects.all()
 
     def perform_destroy(self, instance):
         instance.is_deleted = False
@@ -251,7 +251,7 @@ class RoleCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
         # 自定义响应
         return Response(
             {
-                "detail": f"{instance.system_name} 已恢复",
+                "detail": f"{instance.role_name} 已恢复",
                 "deleted_id": deleted_uuid,
                 "status": status.HTTP_200_OK
             },
@@ -260,7 +260,7 @@ class RoleCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
 
 
 # ✅ 权限 创建
-class PermissionCreateView(generics.ListAPIView):  # noqa
+class PermissionCreateView(generics.CreateAPIView):  # noqa
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = PermissionCreateSerializer
 
@@ -269,20 +269,20 @@ class PermissionCreateView(generics.ListAPIView):  # noqa
 class PermissionListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = PermissionListRetrieveSerializer
-    queryset = Role.objects.filter(is_deleted=False).order_by("-create_at")
+    queryset = CustomPermission.objects.filter(is_deleted=False).order_by("-create_at")
 
 
 # ✅ 权限 详情 ｜ 修改
 class PermissionRetrieveView(generics.RetrieveUpdateAPIView):  # noqa
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = PermissionListRetrieveSerializer
-    queryset = System.objects.filter(is_deleted=False).order_by("-create_at")
+    queryset = CustomPermission.objects.filter(is_deleted=False).order_by("-create_at")
 
 
 # ✅ 权限 删除
 class PermissionDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-    queryset = System.objects.all()
+    queryset = CustomPermission.objects.all()
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
@@ -298,7 +298,7 @@ class PermissionDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
         # 自定义响应
         return Response(
             {
-                "detail": f"{instance.system_name} 已删除",
+                "detail": f"{instance.permission_name} 已删除",
                 "deleted_id": deleted_uuid,
                 "status": status.HTTP_200_OK
             },
@@ -309,7 +309,7 @@ class PermissionDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
 # ✅ 权限 取消删除
 class PermissionCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
-    queryset = System.objects.all()
+    queryset = CustomPermission.objects.all()
 
     def perform_destroy(self, instance):
         instance.is_deleted = False
@@ -324,7 +324,7 @@ class PermissionCancelDeleteView(generics.UpdateAPIView, generics.DestroyAPIView
         # 自定义响应
         return Response(
             {
-                "detail": f"{instance.system_name} 已恢复",
+                "detail": f"{instance.permission_name} 已恢复",
                 "deleted_id": deleted_uuid,
                 "status": status.HTTP_200_OK
             },

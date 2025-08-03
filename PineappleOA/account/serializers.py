@@ -119,10 +119,12 @@ class SystemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = System
         fields = [
-            "system_code", "system_name", "created_by"
+            "system_code", "system_name"
         ]
 
     def create(self, validated_data):
+        created_by = self.context["request"].user
+        validated_data['created_by'] = created_by
         system_code = validated_data['system_code']
         system_name = validated_data['system_name']
 
@@ -138,7 +140,7 @@ class SystemCreateSerializer(serializers.ModelSerializer):
 
 # ✅ 系统 详情 | 列表 | 修改
 class SystemListRetrieveSerializer(serializers.ModelSerializer):
-    created_info = UserCreatedBYSerializer(source="created_by", many=False, read_only=True)
+    created_info = UserCreatedBYSerializer(source="created_by", read_only=True)
 
     class Meta:
         model = System
@@ -158,32 +160,31 @@ class RoleCreateSerializer(serializers.ModelSerializer):  # noqa
     class Meta:
         model = Role
         fields = [
-            "role_name", "created_by"
+            "role_name"
         ]
 
     def create(self, validated_data):
-        system_code = validated_data['system_code']
-        system_name = validated_data['system_name']
-
-        system_obj = self.Meta.model.objects.filter(
-            system_code=system_code,
-            system_name=system_name,
+        created_by = self.context["request"].user
+        role_name = validated_data['role_name']
+        validated_data['created_by'] = created_by
+        role_obj = self.Meta.model.objects.filter(
+            role_name=role_name,
+            created_by=created_by,
             is_deleted=False
         ).first()
-        if not system_obj:
+        if not role_obj:
             return self.Meta.model.objects.create(**validated_data)
-        return system_obj
+        return role_obj
 
 
 # ✅ 角色 详情 | 列表 | 修改
 class RoleListRetrieveSerializer(serializers.ModelSerializer):
-    created_info = UserCreatedBYSerializer(source="created_by", many=False, read_only=True)
-    permissions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    created_info = UserCreatedBYSerializer(source="created_by", read_only=True)
 
     class Meta:
         model = Role
         fields = [
-            "uuid", "role_name", "created_info", "permissions"
+            "uuid", "role_name", "created_info"
         ]
 
     def update(self, instance, validated_data):
@@ -198,27 +199,28 @@ class PermissionCreateSerializer(serializers.ModelSerializer):  # noqa
     class Meta:
         model = CustomPermission
         fields = [
-            "permission_name", "permission_code", "created_by"
+            "permission_name", "permission_code"
         ]
 
     def create(self, validated_data):
-        system_code = validated_data['system_code']
-        system_name = validated_data['system_name']
+        created_by = self.context["request"].user
+        validated_data['created_by'] = created_by
+        permission_name = validated_data['permission_name']
+        permission_code = validated_data['permission_code']
 
-        system_obj = self.Meta.model.objects.filter(
-            system_code=system_code,
-            system_name=system_name,
+        permission_obj = self.Meta.model.objects.filter(
+            permission_name=permission_name,
+            permission_code=permission_code,
             is_deleted=False
         ).first()
-        if not system_obj:
+        if not permission_obj:
             return self.Meta.model.objects.create(**validated_data)
-        return system_obj
+        return permission_obj
 
 
 # ✅ 权限 详情 | 列表 | 修改
 class PermissionListRetrieveSerializer(serializers.ModelSerializer):
     created_info = UserCreatedBYSerializer(source="created_by", many=False, read_only=True)
-    permissions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = CustomPermission
