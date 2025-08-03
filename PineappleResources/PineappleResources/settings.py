@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'account'
+    'account',
+    'files_set'
 ]
 
 MIDDLEWARE = [
@@ -231,3 +232,14 @@ for app in LOG_APPS:
             'level': 'DEBUG',
             'propagate': False,
         }
+
+# ------------------------------------------------ MongoDB -------------------------------------------------------------
+
+
+from mongoengine import connect
+from configs.mongodb_config import MONGO_DB_HOST
+
+MONGO_DB_NAME = "image_storage"
+MONGO_URI = f"mongodb://{MONGO_DB_HOST}:27017/image_storage"
+
+connect(db=MONGO_DB_NAME, host=MONGO_URI)
