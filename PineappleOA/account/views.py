@@ -1,11 +1,17 @@
+import requests
+from django.conf import settings
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
-from utensil.views import CustomPagination
-from .filters import UserFilter, SystemFilter, RoleFilter, CustomPermissionFilter
-from utensil import generics
-from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from utensil import generics
+from utensil.views import CustomPagination
+from .authentication import CustomTokenObtainPairSerializer
+from .filters import UserFilter, SystemFilter, RoleFilter, CustomPermissionFilter
 from .models import User, CustomPermission, System, Role
 from .permissions import IsAdminRole
 from .serializers import (
@@ -14,11 +20,6 @@ from .serializers import (
     PermissionListRetrieveSerializer, RoleListRetrieveSerializer, RoleCreateSerializer, UserUpdateSerializer,
     UserListSerializer
 )
-from .authentication import CustomTokenObtainPairSerializer
-import requests
-from django.conf import settings
-from rest_framework_simplejwt.tokens import RefreshToken
-from django_filters.rest_framework import DjangoFilterBackend
 
 
 # ✅ 用户注册
@@ -127,7 +128,7 @@ class CurrentUserView(generics.GenericAPIView):
             "systems": SystemSerializer(systems, many=True).data if systems else [],
         }
 
-        return Response(data)
+        return Response(self.msg(code=200, msg="成功", data=data))
 
 
 # ✅ 系统 创建

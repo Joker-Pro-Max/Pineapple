@@ -56,6 +56,12 @@ class FileUploadView(APIView):
         return Response(FileMetaSerializer(file_meta).data, status=status.HTTP_201_CREATED)
 
 
+def file_iterator(grid_file, chunk_size=524288):  # 512KB
+    while True:
+        data = grid_file.read(chunk_size)
+        if not data:
+            break
+
 class FileRetrieveView(APIView):
     # permission_classes = [permissions.IsAuthenticated]
 
