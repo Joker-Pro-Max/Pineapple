@@ -1,18 +1,35 @@
-from bson import ObjectId
-from django.http import StreamingHttpResponse
-from django.shortcuts import get_object_or_404
+import hashlib
+import os
+from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, permissions
+from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+import mimetypes
 from .models import FileMeta, Category
 from .mongo_models import StoredFile
 from .serializers import FileMetaSerializer
 
 
 # Create your views here.
+
+
+def save_file_and_get_hash(file_obj):
+    sha256 = hashlib.sha256()
+    file_path = os.path.join(settings.MEDIA_ROOT, 'PDFS', file_obj.name)
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, 'wb+') as destination:
+        for chunk in file_obj.chunks():
+            destination.write(chunk)
+            sha256.update(chunk)
+
+    return sha256.hexdigest(), file_path
+
 
 class FileListView(ListAPIView):
     # permission_classes = [permissions.IsAuthenticated]
@@ -24,57 +41,48 @@ class FileListView(ListAPIView):
 
 
 class FileUploadView(APIView):
-    # permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        file_obj = request.FILES.get("file")
-        category_uuid = request.data.get("category_uuid", "")
+        file = request.FILES.get('file')
+        category_id = request.data.get('category')
 
-        if not file_obj:
-            return Response({"error": "文件不能为空"}, status=status.HTTP_400_BAD_REQUEST)
+        if not file or not category_id:
+            return Response({"detail": "file 和 category 必填"}, status=400)
 
-        category = get_object_or_404(Category, uuid=category_uuid)
+        category = Category.objects.filter(uuid=category_id).first()
+        if not category:
+            return Response({"detail": "分类不存在"}, status=404)
 
-        # ✅ 1. 存入 MongoDB GridFS
-        mongo_file = StoredFile(
-            filename=file_obj.name,
-            content_type=file_obj.content_type,
-            file_size=file_obj.size
-        )
-        mongo_file.file.put(file_obj, content_type=file_obj.content_type)  # ✅ 存入 GridFS
-        mongo_file.save()
+        file_hash, file_path = save_file_and_get_hash(file)
 
-        # ✅ 2. 记录 MySQL 元数据
-        file_meta = FileMeta.objects.create(
+        # 如果已经存在则直接返回已有文件元信息
+        instance = FileMeta.objects.filter(file_hash=file_hash).first()
+        if instance:
+            return Response(FileMetaSerializer(instance).data)
+
+        instance = FileMeta.objects.create(
             category=category,
-            filename=file_obj.name,
-            content_type=file_obj.content_type,
-            file_size=file_obj.size,
-            mongo_id=str(mongo_file.id),
+            created_by=None,
+            filename=file.name,
+            content_type=file.content_type,
+            file_size=file.size,
+            file_path=str(file_path).replace(str(settings.MEDIA_ROOT), '/media'),
+            file_hash=file_hash,
         )
+        return Response(FileMetaSerializer(instance).data)
 
-        return Response(FileMetaSerializer(file_meta).data, status=status.HTTP_201_CREATED)
 
-
-def file_iterator(grid_file, chunk_size=524288):  # 512KB
-    while True:
-        data = grid_file.read(chunk_size)
-        if not data:
-            break
 
 class FileRetrieveView(APIView):
-    # permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
-        file_meta = get_object_or_404(FileMeta, uuid=pk)
-        mongo_file = StoredFile.objects(id=ObjectId(file_meta.mongo_id)).first()
-        if not mongo_file:
-            return Response({"error": "文件不存在"}, status=status.HTTP_404_NOT_FOUND)
+        file_meta = get_object_or_404(FileMeta, pk=pk)
+        file_path = file_meta.file_path.lstrip('/')
 
-        grid_file = mongo_file.file.get()
-        response = StreamingHttpResponse(grid_file, content_type=file_meta.content_type)
-        response["Content-Disposition"] = f'inline; filename="{file_meta.filename}"'
-        return response
+        mime, _ = mimetypes.guess_type(file_path)
+        return FileResponse(open(file_path, 'rb'), content_type=mime)
 
 
 class FileDeleteView(APIView):

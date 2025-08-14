@@ -236,10 +236,10 @@ for app in LOG_APPS:
 # ------------------------------------------------ MongoDB -------------------------------------------------------------
 
 
-from mongoengine import connect
-from configs.mongodb_config import MONGO_DB_HOST
-
-MONGO_DB_NAME = "image_storage"
-MONGO_URI = f"mongodb://{MONGO_DB_HOST}:27017/image_storage"
-
-connect(db=MONGO_DB_NAME, host=MONGO_URI)
+# from mongoengine import connect
+# from configs.mongodb_config import MONGO_DB_HOST
+#
+# MONGO_DB_NAME = "image_storage"
+# MONGO_URI = f"mongodb://{MONGO_DB_HOST}:27017/image_storage"
+#
+# connect(db=MONGO_DB_NAME, host=MONGO_URI)
