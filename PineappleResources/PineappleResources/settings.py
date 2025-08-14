@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -19,7 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u(6*49eew3f8ra$$5^7c*#=*g&$p5#g&=s=q*dts42o5mw$@-x'
+SECRET_KEY = 'django-insecure-dd%)uc&p7&gx3co7#$bm8mqwn4#2kl7p7g$p+k7stonx&*z6s='
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -233,13 +233,28 @@ for app in LOG_APPS:
             'propagate': False,
         }
 
-# ------------------------------------------------ MongoDB -------------------------------------------------------------
 
-
-from mongoengine import connect
-from configs.mongodb_config import MONGO_DB_HOST
-
-MONGO_DB_NAME = "image_storage"
-MONGO_URI = f"mongodb://{MONGO_DB_HOST}:27017/image_storage"
-
-connect(db=MONGO_DB_NAME, host=MONGO_URI)
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ),
+#     'DEFAULT_PERMISSION_CLASSES': (
+#         'rest_framework.permissions.IsAuthenticated',
+#     ),
+#     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+#     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+#     'PAGE_SIZE': 20,
+# }
+#
+# SIMPLE_JWT = {
+#     "USER_ID_FIELD": "unified_uuid",     # ✅ 使用 unified_uuid 作为用户标识
+#     "USER_ID_CLAIM": "unified_uuid",     # ✅ JWT Payload 中的字段名
+#     "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),   # ✅ 访问 Token 有效期 24 小时
+#     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),    # ✅ 刷新 Token 7 天有效
+#     "ROTATE_REFRESH_TOKENS": True,
+#     "BLACKLIST_AFTER_ROTATION": True,
+#     "UPDATE_LAST_LOGIN": True,
+#     "ALGORITHM": "HS256",
+#     "SIGNING_KEY": SECRET_KEY,
+#     "AUTH_HEADER_TYPES": ("Bearer",),
+# }

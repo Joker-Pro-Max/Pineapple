@@ -1,8 +1,8 @@
 # Mysql Settings
 
 # 本地环境
-MYSQL_NAME = "PineappleOA"
-MYSQL_USER = "root"
+MYSQL_NAME = "oa"
+MYSQL_USER = "oa"
 MYSQL_PASSWORD = "20030223"
-MYSQL_HOST = "113.44.6.2"
+MYSQL_HOST = "101.132.182.199"
 MYSQL_PORT = 3306
