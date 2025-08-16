@@ -18,7 +18,7 @@ from .serializers import (
     RegisterSerializer, CustomTokenObtainPairSerializer, UserDetailSerializer, CustomPermissionSerializer,
     SystemSerializer, SystemCreateSerializer, SystemListRetrieveSerializer, PermissionCreateSerializer,
     PermissionListRetrieveSerializer, RoleListRetrieveSerializer, RoleCreateSerializer, UserUpdateSerializer,
-    UserListSerializer
+    UserListSerializer, UserRetrieveSerializer
 )
 
 
@@ -87,16 +87,25 @@ class WeChatLoginView(generics.GenericAPIView):
 
 
 class UserListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = UserListSerializer
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = UserFilter  # noqa
     queryset = User.objects.filter(is_deleted=False).order_by('-create_at')
 
+class UserRetrieveAPIView(generics.RetrieveAPIView):
+    permission_classes = [AllowAny]
+    queryset = User.objects.filter(is_deleted=False).order_by('-create_at')
+    serializer_class = UserRetrieveSerializer
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(self.msg(code=200, msg="成功", data=serializer.data))
+
 
 class UserUpdateView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = UserUpdateSerializer
     queryset = User.objects.filter(is_deleted=False)
 
@@ -106,7 +115,7 @@ class CurrentUserView(generics.GenericAPIView):
     """
     获取当前登录用户详细信息（含角色、权限、系统、是否超级管理员）
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):  # noqa
         user = request.user
@@ -133,7 +142,7 @@ class CurrentUserView(generics.GenericAPIView):
 
 # ✅ 系统 创建
 class SystemCreateView(generics.CreateAPIView):  # noqa
-    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+    permission_classes = [permissions.AllowAny, IsAdminRole]
     serializer_class = SystemCreateSerializer
 
 

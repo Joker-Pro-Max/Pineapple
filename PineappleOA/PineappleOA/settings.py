@@ -39,11 +39,14 @@ INSTALLED_APPS = [
     "rest_framework",
     # JWT 配置
     "rest_framework_simplejwt",
+    # 跨域配置
+    "corsheaders",
 
     'account'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -162,10 +165,10 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "USER_ID_FIELD": "unified_uuid",     # ✅ 使用 unified_uuid 作为用户标识
-    "USER_ID_CLAIM": "unified_uuid",     # ✅ JWT Payload 中的字段名
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),   # ✅ 访问 Token 有效期 24 小时
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),    # ✅ 刷新 Token 7 天有效
+    "USER_ID_FIELD": "unified_uuid",  # ✅ 使用 unified_uuid 作为用户标识
+    "USER_ID_CLAIM": "unified_uuid",  # ✅ JWT Payload 中的字段名
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),  # ✅ 访问 Token 有效期 24 小时
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # ✅ 刷新 Token 7 天有效
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -262,3 +265,4 @@ for app in LOG_APPS:
             'level': 'DEBUG',
             'propagate': False,
         }
+CORS_ALLOW_ALL_ORIGINS = True

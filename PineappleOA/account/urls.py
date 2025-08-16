@@ -4,7 +4,7 @@ from .views import (
     LoginView, RegisterView, RefreshTokenView, WeChatLoginView, CurrentUserView, UserListView, UserUpdateView,
     SystemCreateView, SystemListView, SystemRetrieveView, SystemDeleteView, SystemCancelDeleteView, RoleCreateView,
     RoleListView, RoleRetrieveView, RoleDeleteView, RoleCancelDeleteView, PermissionCreateView, PermissionListView,
-    PermissionRetrieveView, PermissionDeleteView, PermissionCancelDeleteView
+    PermissionRetrieveView, PermissionDeleteView, PermissionCancelDeleteView, UserRetrieveAPIView
 )
 
 urlpatterns = [
@@ -14,6 +14,7 @@ urlpatterns = [
     re_path(r"^wechat/$", WeChatLoginView.as_view()),  # ✅ 微信登录
     re_path(r"^myinfo/$", CurrentUserView.as_view()),  # ✅ 获取用户信息
     re_path(r"^user/list/$", UserListView.as_view()),  # ✅ 用户列表
+    re_path(r"^user/(?P<pk>[0-9A-Za-z_-]{22})/$", UserRetrieveAPIView.as_view()),  # ✅ 用户详情
     re_path(r"^userinfo/(?P<pk>[0-9A-Za-z_-]{22})/update/$", UserUpdateView.as_view()),  # ✅ 修改用户信息
 
     # ✅ 系统 API
