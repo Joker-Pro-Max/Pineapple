@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import FileMeta, Category
+from .models import  Category
 
 User = get_user_model()
 
@@ -20,9 +20,3 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 
-
-class FileMetaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FileMeta
-        fields = '__all__'
-        read_only_fields = ('file_path', 'file_hash', 'file_size', 'content_type', 'created_by')
